@@ -2,6 +2,10 @@ const { User } = require("../model");
 const { generateToken } = require("../middleware/jwtMiddleware");
 const { validationResult } = require("express-validator");
 
+const generateConnectionCode = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 characters
+};
+
 exports.signup = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -9,9 +13,13 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: errors.array() });
     }
 
+    const connectionCode = generateConnectionCode();
+
     const user = await User.create({
       username: req.body.username,
       password: req.body.password,
+      email: req.body.email,
+      connectionCode,
     });
 
     const { salt, password, ...trimmedUser } = user.toJSON();
@@ -55,4 +63,58 @@ exports.getUser = async (req, res) => {
   }
 };
 
-module.exports;
+exports.chooseRole = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    const { role } = req.body;
+    user.role = role;
+    await user.save();
+    res.status(201).json({ message: "User role set", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching user data" });
+  }
+};
+
+exports.connectUsers = async (req, res) => {
+  try {
+    const { connectionCode } = req.body;
+    const requestingUser = await User.findByPk(req.user.id);
+
+    if (!requestingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const targetUser = await User.findOne({
+      where: { connectionCode },
+    });
+
+    if (!targetUser) {
+      return res
+        .status(400)
+        .json({ message: "Target user not found, check code again" });
+    }
+
+    if (requestingUser.role === targetUser.role) {
+      return res
+        .status(403)
+        .json({ message: "This code belongs to a person with the same role." });
+    }
+
+    requestingUser.connectedUserId = targetUser.id;
+    targetUser.connectedUserId = requestingUser.id;
+
+    targetUser.connectionCode = null;
+
+    await requestingUser.save();
+    await targetUser.save();
+
+    res.status(200).json({
+      message: "Users connected successfully",
+      connectedWith: targetUser.username,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error connecting users" });
+  }
+};

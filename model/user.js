@@ -23,9 +23,18 @@ const User = sequelize.define(
       type: DataTypes.ENUM("parent", "child"),
       allowNull: false,
     },
-    related_user: {
+    connectionCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    relatedUserId: {
       type: DataTypes.INTEGER,
       allowNull: true,
+    },
+    expPoints: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
     salt: {
       type: DataTypes.STRING,
