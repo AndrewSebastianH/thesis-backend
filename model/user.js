@@ -21,7 +21,7 @@ const User = sequelize.define(
     },
     role: {
       type: DataTypes.ENUM("parent", "child"),
-      allowNull: false,
+      allowNull: true,
     },
     connectionCode: {
       type: DataTypes.STRING,

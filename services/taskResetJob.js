@@ -24,7 +24,7 @@ cron.schedule("0 0 * * *", async () => {
 
     // Reset weekly tasks if a new week has started
     if (moment().day() === 0) {
-      // Sunday: start of a new week
+      // sunday
       const weeklyTaskIds = weeklyTasks.map((task) => task.id);
       await UserProgress.destroy({
         where: {

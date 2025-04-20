@@ -1,5 +1,6 @@
 const { SECRET_KEY } = require("../constants/constants");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const generateToken = (user) => {
   const payload = {
@@ -10,7 +11,7 @@ const generateToken = (user) => {
     relatedUserId: user?.relatedUserId,
     expPoints: user.expPoints,
   };
-  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "24h" });
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "24h" });
   return token;
 };
 

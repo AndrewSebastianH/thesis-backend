@@ -38,14 +38,14 @@ exports.login = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ message: errors.array() });
     }
-    const { username, password } = req.body;
-    const user = await User.findOne({ where: { username } });
+    const { email, password } = req.body;
+    const user = await User.findOne({ where: { email } });
 
     if (user && user.validatePassword(password)) {
       const token = generateToken(user);
       res.status(200).json({ token, user });
     } else {
-      res.status(401).json({ message: "Invalid username or password" });
+      res.status(401).json({ message: "Invalid email or password" });
     }
   } catch (err) {
     console.error(err);
@@ -101,10 +101,11 @@ exports.connectUsers = async (req, res) => {
         .json({ message: "This code belongs to a person with the same role." });
     }
 
-    requestingUser.connectedUserId = targetUser.id;
-    targetUser.connectedUserId = requestingUser.id;
+    requestingUser.relatedUserId = targetUser.id;
+    targetUser.relatedUserId = requestingUser.id;
 
     targetUser.connectionCode = null;
+    requestingUser.connectionCode = null;
 
     await requestingUser.save();
     await targetUser.save();
