@@ -119,3 +119,41 @@ exports.connectUsers = async (req, res) => {
     res.status(500).json({ message: "Error connecting users" });
   }
 };
+
+exports.getFullUserInformation = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const relatedUser = user.relatedUserId
+      ? await User.findByPk(user.relatedUserId)
+      : null;
+
+    const response = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        connectionCode: user.connectionCode,
+      },
+    };
+
+    if (relatedUser) {
+      response.relatedUser = {
+        id: relatedUser.id,
+        username: relatedUser.username,
+        email: relatedUser.email,
+        role: relatedUser.role,
+      };
+    }
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching user information" });
+  }
+};

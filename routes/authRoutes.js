@@ -60,4 +60,10 @@ router.post(
   authController.connectUsers
 );
 
+router.get(
+  "/user/full-info",
+  isAuthenticated,
+  authController.getFullUserInformation
+);
+
 module.exports = router;
