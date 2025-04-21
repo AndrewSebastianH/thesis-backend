@@ -1,4 +1,5 @@
-const { EmotionLog } = require("../model");
+const { EmotionLog, User } = require("../model");
+
 const { Op } = require("sequelize");
 
 // Create log entry
@@ -25,14 +26,30 @@ exports.createEmotionLog = async (req, res) => {
 exports.getEmotionLogs = async (req, res) => {
   try {
     const userId = req.user.id;
+    const relatedUserId = req.user.relatedUserId;
 
-    const logs = await EmotionLog.findAll({
-      where: {
-        userId,
+    const [user, relative] = await Promise.all([
+      User.findByPk(userId),
+      User.findByPk(relatedUserId),
+    ]);
+
+    const [userLogs, relativeLogs] = await Promise.all([
+      EmotionLog.findAll({ where: { userId } }),
+      EmotionLog.findAll({ where: { userId: relatedUserId } }),
+    ]);
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        logs: userLogs,
+      },
+      relative: {
+        id: relative.id,
+        username: relative.username,
+        logs: relativeLogs,
       },
     });
-
-    res.status(200).json({ logs });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching emotion logs" });
