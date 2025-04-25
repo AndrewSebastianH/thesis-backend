@@ -32,7 +32,7 @@ const CustomTask = sequelize.define("CustomTask", {
     defaultValue: false,
   },
   dueDate: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
     allowNull: true,
   },
   isRecurring: {

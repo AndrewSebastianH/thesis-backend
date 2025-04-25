@@ -118,6 +118,7 @@ exports.getUserTasks = async (req, res) => {
       title: task.title,
       description: task.description,
       dueDate: task.dueDate,
+      assignedBy: task.assignedBy,
       recurrenceInterval: task.recurrenceInterval,
       completed: task.isCompleted,
     }));
