@@ -1,8 +1,14 @@
-const { CustomTask, SystemTask, UserProgress, User } = require("../model");
+const {
+  CustomTask,
+  SystemTask,
+  UserProgress,
+  User,
+  UserCustomProgress,
+} = require("../model");
 const { Op } = require("sequelize");
 const moment = require("moment");
 
-// Create System Tasks
+// Create System Task
 exports.createSystemTask = async (req, res) => {
   try {
     const { title, description, recurrenceInterval, targetRole } = req.body;
@@ -17,7 +23,7 @@ exports.createSystemTask = async (req, res) => {
     res.status(201).json({ message: "System task successfully created", task });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error creating task" });
+    res.status(500).json({ message: "Error creating system task" });
   }
 };
 
@@ -33,6 +39,14 @@ exports.createCustomTask = async (req, res) => {
     const { title, description, dueDate, isRecurring, recurrenceInterval } =
       req.body;
 
+    // Validate mutual exclusivity between dueDate and isRecurring
+    if (dueDate && isRecurring) {
+      return res.status(400).json({
+        message:
+          "Task cannot be both recurring and have a due date. Choose one.",
+      });
+    }
+
     const task = await CustomTask.create({
       title,
       description: description || null,
@@ -40,16 +54,17 @@ exports.createCustomTask = async (req, res) => {
       assignedTo: user.relatedUserId,
       dueDate: dueDate || null,
       isRecurring: isRecurring || false,
-      recurrenceInterval: recurrenceInterval || null,
+      recurrenceInterval: isRecurring ? recurrenceInterval || "daily" : null,
     });
+
     res.status(201).json({ message: "Custom task successfully created", task });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error creating task" });
+    res.status(500).json({ message: "Error creating custom task" });
   }
 };
 
-// Get user tasks (both custom and system)
+// Get User Tasks (both custom and system)
 exports.getUserTasks = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -60,50 +75,55 @@ exports.getUserTasks = async (req, res) => {
 
     // Fetch all custom tasks assigned to the user
     const customTasks = await CustomTask.findAll({
-      where: {
-        assignedTo: userId,
-      },
+      where: { assignedTo: userId },
     });
 
     // Fetch all system tasks
     const systemTasks = await SystemTask.findAll({
       where: {
-        targetRole: userRole || "all",
+        [Op.or]: [{ targetRole: "all" }, { targetRole: userRole }],
       },
     });
 
-    // Fetch completed system tasks for today, this week, and this month
-    const completedTasks = await UserProgress.findAll({
+    // Fetch completed system tasks
+    const completedSystemTasks = await UserProgress.findAll({
       where: {
-        userId: userId,
-        completedAt: {
-          [Op.gte]: startOfMonth, // Fetch all completed tasks in the current month
-        },
+        userId,
+        completedAt: { [Op.gte]: startOfMonth },
       },
-      attributes: ["systemTaskId", "date"],
+      attributes: ["systemTaskId", "completedAt"],
     });
 
-    const completedTaskMap = new Map();
-    completedTasks.forEach((task) => {
-      completedTaskMap.set(task.systemTaskId, task.date);
+    const completedCustomTasks = await UserCustomProgress.findAll({
+      where: { userId },
+      attributes: ["customTaskId", "completedAt"],
     });
 
-    // Attach "completed" status based on recurrence interval
+    const systemTaskProgressMap = new Map();
+    completedSystemTasks.forEach((progress) => {
+      systemTaskProgressMap.set(progress.systemTaskId, progress.completedAt);
+    });
+
+    const customTaskProgressMap = new Map();
+    completedCustomTasks.forEach((progress) => {
+      customTaskProgressMap.set(progress.customTaskId, progress.completedAt);
+    });
+
+    // Attach completed status for system tasks
     const systemTasksWithStatus = systemTasks.map((task) => {
-      const lastCompletedDate = completedTaskMap.get(task.id);
+      const lastCompletedAt = systemTaskProgressMap.get(task.id);
       let completed = false;
 
-      if (lastCompletedDate) {
+      if (lastCompletedAt) {
         if (task.recurrenceInterval === "daily") {
-          completed = lastCompletedDate === today;
+          completed = moment(lastCompletedAt).isSame(today, "day");
         } else if (task.recurrenceInterval === "weekly") {
-          completed = moment(lastCompletedDate).isSameOrAfter(startOfWeek);
+          completed = moment(lastCompletedAt).isSameOrAfter(startOfWeek);
         } else if (task.recurrenceInterval === "monthly") {
-          completed = moment(lastCompletedDate).isSameOrAfter(startOfMonth);
+          completed = moment(lastCompletedAt).isSameOrAfter(startOfMonth);
         }
       }
 
-      // System tasks Output
       return {
         type: "system",
         ...task.toJSON(),
@@ -111,7 +131,7 @@ exports.getUserTasks = async (req, res) => {
       };
     });
 
-    // Custom tasks map
+    // Attach completed status for custom tasks
     const customTasksWithStatus = customTasks.map((task) => ({
       type: "custom",
       id: task.id,
@@ -119,25 +139,28 @@ exports.getUserTasks = async (req, res) => {
       description: task.description,
       dueDate: task.dueDate,
       assignedBy: task.assignedBy,
+      isRecurring: task.isRecurring,
       recurrenceInterval: task.recurrenceInterval,
-      completed: task.isCompleted,
+      completed: customTaskProgressMap.has(task.id), // mark as completed if any progress
     }));
 
-    res.status(201).json({
-      message: "success fetching task data",
+    res.status(200).json({
+      message: "Success fetching task data",
       customTasks: customTasksWithStatus,
       systemTasks: systemTasksWithStatus,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error fetching tasks" });
   }
 };
 
+// Complete Custom Task
 exports.completeCustomTask = async (req, res) => {
   try {
     const { taskId } = req.params;
     const userId = req.user.id;
+
     const task = await CustomTask.findByPk(taskId);
 
     if (!task) {
@@ -150,16 +173,20 @@ exports.completeCustomTask = async (req, res) => {
         .json({ message: "You are not allowed to complete this task" });
     }
 
-    task.isCompleted = true;
-    await task.save();
+    await UserCustomProgress.create({
+      userId,
+      customTaskId: taskId,
+      completedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
+    });
 
-    res.status(200).json({ message: "Task successfully completed", task });
+    res.status(201).json({ message: "Custom task successfully completed" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error completing task" });
+    res.status(500).json({ message: "Error completing custom task" });
   }
 };
 
+// Complete System Task
 exports.completeSystemTask = async (req, res) => {
   try {
     const { taskId } = req.params;
@@ -170,23 +197,21 @@ exports.completeSystemTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Check if user is eligible for this system task
+    // Check if user is eligible for system task
     if (task.targetRole !== "all" && task.targetRole !== req.user.role) {
       return res
         .status(403)
         .json({ message: "You are not allowed to complete this task" });
     }
 
-    // Ensure the task is not already completed by the user
-    const existingEntry = await UserProgress.findOne({
+    const existingProgress = await UserProgress.findOne({
       where: { userId, systemTaskId: taskId },
     });
 
-    if (existingEntry) {
-      return res.status(400).json({ message: "Task already completed" });
+    if (existingProgress) {
+      return res.status(400).json({ message: "System task already completed" });
     }
 
-    // Mark task as completed  in UserProgress
     await UserProgress.create({
       userId,
       systemTaskId: taskId,
@@ -196,6 +221,64 @@ exports.completeSystemTask = async (req, res) => {
     res.status(201).json({ message: "System task successfully completed" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error completing task" });
+    res.status(500).json({ message: "Error completing system task" });
+  }
+};
+// Complete System Task
+exports.completeSystemTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const userId = req.user.id;
+
+    const task = await SystemTask.findByPk(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Check if user is eligible for system task
+    if (task.targetRole !== "all" && task.targetRole !== req.user.role) {
+      return res
+        .status(403)
+        .json({ message: "You are not allowed to complete this task" });
+    }
+
+    // Find latest completion of this task
+    const latestProgress = await UserProgress.findOne({
+      where: { userId, systemTaskId: taskId },
+      order: [["completedAt", "DESC"]],
+    });
+
+    let alreadyCompleted = false;
+
+    if (latestProgress) {
+      const lastCompletedAt = moment(latestProgress.completedAt);
+      const now = moment();
+
+      if (task.recurrenceInterval === "daily") {
+        alreadyCompleted = lastCompletedAt.isSame(now, "day");
+      } else if (task.recurrenceInterval === "weekly") {
+        alreadyCompleted = lastCompletedAt.isSame(now, "isoWeek"); // Week resets Monday
+      } else if (task.recurrenceInterval === "monthly") {
+        alreadyCompleted = lastCompletedAt.isSame(now, "month");
+      }
+    }
+
+    if (alreadyCompleted) {
+      return res
+        .status(400)
+        .json({ message: "System task already completed for this period." });
+    }
+
+    // ✅ Task is allowed to complete
+    await UserProgress.create({
+      userId,
+      systemTaskId: taskId,
+      completedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
+    });
+
+    res.status(201).json({ message: "System task successfully completed" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error completing system task" });
   }
 };

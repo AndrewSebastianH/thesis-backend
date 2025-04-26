@@ -27,10 +27,6 @@ const CustomTask = sequelize.define("CustomTask", {
     references: { model: "Users", key: "id" },
     onDelete: "CASCADE",
   },
-  isCompleted: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
   dueDate: {
     type: DataTypes.DATEONLY,
     allowNull: true,
