@@ -19,6 +19,11 @@ const Mail = sequelize.define("Mail", {
     references: { model: "Users", key: "id" },
     onDelete: "CASCADE",
   },
+  subject: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: "No Subject",
+  },
   message: {
     type: DataTypes.TEXT,
     allowNull: false,
@@ -28,6 +33,17 @@ const Mail = sequelize.define("Mail", {
     allowNull: false,
     defaultValue: false,
   },
+  isReceiverDeleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  isSenderDeleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+
   //   mailDesignId: {
   //     type: DataTypes.INTEGER,
   //     allowNull: false,
