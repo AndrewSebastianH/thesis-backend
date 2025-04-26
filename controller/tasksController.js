@@ -242,12 +242,10 @@ exports.completeSystemTask = async (req, res) => {
       where: { userId, systemTaskId: taskId },
     });
 
-    res
-      .status(201)
-      .json({
-        message: "System task successfully completed",
-        totalCompletions,
-      });
+    res.status(201).json({
+      message: "System task successfully completed",
+      totalCompletions,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error completing system task" });
