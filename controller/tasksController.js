@@ -204,44 +204,6 @@ exports.completeSystemTask = async (req, res) => {
         .json({ message: "You are not allowed to complete this task" });
     }
 
-    const existingProgress = await UserProgress.findOne({
-      where: { userId, systemTaskId: taskId },
-    });
-
-    if (existingProgress) {
-      return res.status(400).json({ message: "System task already completed" });
-    }
-
-    await UserProgress.create({
-      userId,
-      systemTaskId: taskId,
-      completedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
-    });
-
-    res.status(201).json({ message: "System task successfully completed" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error completing system task" });
-  }
-};
-// Complete System Task
-exports.completeSystemTask = async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const userId = req.user.id;
-
-    const task = await SystemTask.findByPk(taskId);
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    // Check if user is eligible for system task
-    if (task.targetRole !== "all" && task.targetRole !== req.user.role) {
-      return res
-        .status(403)
-        .json({ message: "You are not allowed to complete this task" });
-    }
-
     // Find latest completion of this task
     const latestProgress = await UserProgress.findOne({
       where: { userId, systemTaskId: taskId },
@@ -276,7 +238,16 @@ exports.completeSystemTask = async (req, res) => {
       completedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
     });
 
-    res.status(201).json({ message: "System task successfully completed" });
+    const totalCompletions = await UserProgress.count({
+      where: { userId, systemTaskId: taskId },
+    });
+
+    res
+      .status(201)
+      .json({
+        message: "System task successfully completed",
+        totalCompletions,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error completing system task" });
