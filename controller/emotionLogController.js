@@ -28,14 +28,39 @@ exports.getEmotionLogs = async (req, res) => {
     const userId = req.user.id;
     const relatedUserId = req.user.relatedUserId;
 
+    const { startDate, endDate } = req.query;
+    // Example for FE: load logs for August 2025
+    // final startDate = DateTime(2025, 8, 1);
+    // final endDate = DateTime(2025, 8, 31);
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: "Start date and end date are required." });
+    }
+
     const [user, relative] = await Promise.all([
       User.findByPk(userId),
       User.findByPk(relatedUserId),
     ]);
 
     const [userLogs, relativeLogs] = await Promise.all([
-      EmotionLog.findAll({ where: { userId } }),
-      EmotionLog.findAll({ where: { userId: relatedUserId } }),
+      EmotionLog.findAll({
+        where: {
+          userId,
+          date: {
+            [Op.between]: [startDate, endDate],
+          },
+        },
+      }),
+      EmotionLog.findAll({
+        where: {
+          userId: relatedUserId,
+          date: {
+            [Op.between]: [startDate, endDate],
+          },
+        },
+      }),
     ]);
 
     res.status(200).json({
