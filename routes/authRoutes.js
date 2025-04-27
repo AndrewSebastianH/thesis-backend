@@ -66,6 +66,12 @@ router.get(
   authController.getFullUserInformation
 );
 
+router.get(
+  "/user/connection-code",
+  isAuthenticated,
+  authController.getConnectionCode
+);
+
 router.patch("/user/avatar", isAuthenticated, authController.updateAvatar);
 
 module.exports = router;

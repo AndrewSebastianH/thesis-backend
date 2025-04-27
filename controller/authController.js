@@ -129,6 +129,28 @@ exports.connectUsers = async (req, res) => {
   }
 };
 
+exports.getConnectionCode = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let connectionCode = user.connectionCode;
+
+    if (!connectionCode) {
+      connectionCode = generateConnectionCode();
+      user.connectionCode = connectionCode;
+      await user.save();
+    }
+
+    return res.status(200).json({ code: connectionCode });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error getting connection code" });
+  }
+};
+
 exports.getFullUserInformation = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
