@@ -22,10 +22,10 @@ exports.signup = async (req, res) => {
       connectionCode,
     });
 
-    const { salt, password, ...trimmedUser } = user.toJSON();
+    const { salt, password, ...safeUser } = user.toJSON();
 
     const token = generateToken(user);
-    return res.status(200).json({ token, trimmedUser });
+    return res.status(201).json({ token, user: safeUser });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Something went wrong" });
@@ -38,12 +38,14 @@ exports.login = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ message: errors.array() });
     }
+
     const { email, password } = req.body;
     const user = await User.findOne({ where: { email } });
 
     if (user && user.validatePassword(password)) {
+      const { salt, password: pwd, ...safeUser } = user.toJSON();
       const token = generateToken(user);
-      res.status(200).json({ token, user });
+      res.status(200).json({ token, user: safeUser });
     } else {
       res.status(401).json({ message: "Invalid email or password" });
     }
@@ -53,23 +55,24 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getUser = async (req, res) => {
-  try {
-    const user = await User.findByPk(req.user.id);
-    res.status(201).json({ user, protected: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching user data" });
-  }
-};
-
 exports.chooseRole = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
     const { role } = req.body;
     user.role = role;
+
+    if (role === "parent") {
+      user.avatar = 3;
+    } else if (role === "child") {
+      user.avatar = 1;
+    }
+
     await user.save();
-    res.status(201).json({ message: "User role set", user });
+
+    const { salt, password, ...safeUser } = user.toJSON();
+
+    const token = generateToken(user);
+    res.status(201).json({ message: "User role set", user: safeUser, token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching user data" });
@@ -110,9 +113,15 @@ exports.connectUsers = async (req, res) => {
     await requestingUser.save();
     await targetUser.save();
 
+    const { salt, password, ...safeUser } = requestingUser.toJSON();
+
+    const token = generateToken(requestingUser);
+
     res.status(200).json({
       message: "Users connected successfully",
       connectedWith: targetUser.username,
+      user: safeUser,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -138,7 +147,7 @@ exports.getFullUserInformation = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        connectionCode: user.connectionCode,
+        avatar: user.avatar,
       },
     };
 
@@ -148,6 +157,7 @@ exports.getFullUserInformation = async (req, res) => {
         username: relatedUser.username,
         email: relatedUser.email,
         role: relatedUser.role,
+        avatar: relatedUser.avatar,
       };
     }
 
@@ -155,5 +165,25 @@ exports.getFullUserInformation = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching user information" });
+  }
+};
+
+exports.updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { avatar } = req.body;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.avatar = avatar;
+    await user.save();
+
+    res.status(200).json({ message: "Avatar updated successfully.", avatar });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating avatar" });
   }
 };

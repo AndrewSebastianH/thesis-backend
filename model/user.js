@@ -36,6 +36,10 @@ const User = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    avatar: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     salt: {
       type: DataTypes.STRING,
     },

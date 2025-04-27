@@ -30,7 +30,7 @@ exports.getReceivedMails = async (req, res) => {
   try {
     const receiverId = req.user.id;
     const limit = parseInt(req.query.limit) || 10; // Default 10 mails per request, cek discord private for example code
-    const offset = parseInt(req.query.offset) || 0; // How many mails to skip
+    const offset = parseInt(req.query.offset) || 0; // How many mails to skip (pageNum x limit = offset)
 
     const { count, rows: mails } = await Mail.findAndCountAll({
       where: { receiverId },

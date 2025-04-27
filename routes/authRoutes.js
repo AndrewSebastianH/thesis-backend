@@ -66,4 +66,6 @@ router.get(
   authController.getFullUserInformation
 );
 
+router.patch("/user/avatar", isAuthenticated, authController.updateAvatar);
+
 module.exports = router;
