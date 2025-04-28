@@ -36,8 +36,14 @@ exports.createCustomTask = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const { title, description, dueDate, isRecurring, recurrenceInterval } =
-      req.body;
+    const {
+      title,
+      description,
+      dueDate,
+      isRecurring,
+      recurrenceInterval,
+      assignToSelf,
+    } = req.body;
 
     // Validate mutual exclusivity between dueDate and isRecurring
     if (dueDate && isRecurring) {
@@ -51,7 +57,7 @@ exports.createCustomTask = async (req, res) => {
       title,
       description: description || null,
       assignedBy: user.id,
-      assignedTo: user.relatedUserId,
+      assignedTo: assignToSelf ? user.id : user.relatedUserId,
       dueDate: dueDate || null,
       isRecurring: isRecurring || false,
       recurrenceInterval: isRecurring ? recurrenceInterval || "daily" : null,
