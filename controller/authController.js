@@ -190,22 +190,40 @@ exports.getFullUserInformation = async (req, res) => {
   }
 };
 
-exports.updateAvatar = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { avatar } = req.body;
+    const { newAvatar, newUsername } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    user.avatar = avatar;
-    await user.save();
+    const oldName = user.username;
+    let updated = false;
 
-    res.status(200).json({ message: "Avatar updated successfully.", avatar });
+    if (newAvatar) {
+      user.avatar = newAvatar;
+      updated = true;
+    }
+
+    if (newUsername) {
+      user.username = newUsername;
+      updated = true;
+    }
+
+    if (updated) {
+      await user.save();
+    }
+
+    res.status(200).json({
+      message: "Profile updated successfully.",
+      oldName,
+      newUsername: newUsername || user.username,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error updating avatar" });
+    res.status(500).json({ message: "Error updating profile." });
   }
 };
