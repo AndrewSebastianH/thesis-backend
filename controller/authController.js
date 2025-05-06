@@ -79,6 +79,43 @@ exports.chooseRole = async (req, res) => {
   }
 };
 
+exports.findUserByConnectionCode = async (req, res) => {
+  try {
+    const { connectionCode } = req.body;
+    const requestingUser = await User.findByPk(req.user.id);
+
+    if (!requestingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const targetUser = await User.findOne({
+      where: { connectionCode },
+    });
+
+    if (!targetUser) {
+      return res
+        .status(400)
+        .json({ message: "Target user not found, check code again" });
+    }
+
+    if (requestingUser.role === targetUser.role) {
+      return res
+        .status(403)
+        .json({ message: "This code belongs to a person with the same role." });
+    }
+
+    res.status(200).json({
+      message: "User found",
+      codeOwner: targetUser,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Error finding user from connection code" });
+  }
+};
+
 exports.connectUsers = async (req, res) => {
   try {
     const { connectionCode } = req.body;

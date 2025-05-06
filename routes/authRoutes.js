@@ -49,6 +49,18 @@ router.post(
 );
 
 router.post(
+  "/find-user",
+  [
+    body("connectionCode")
+      .trim()
+      .notEmpty()
+      .withMessage("Connection code field is required"),
+  ],
+  isAuthenticated,
+  authController.findUserByConnectionCode
+);
+
+router.post(
   "/connect-user",
   [
     body("connectionCode")
@@ -72,6 +84,6 @@ router.get(
   authController.getConnectionCode
 );
 
-router.patch("/user/avatar", isAuthenticated, authController.updateAvatar);
+router.patch("/user/profile", isAuthenticated, authController.updateProfile);
 
 module.exports = router;
