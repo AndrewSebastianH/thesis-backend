@@ -32,13 +32,13 @@ router.post(
 
 router.get("/user", isAuthenticated, taskController.getUserTasks);
 
-router.post(
+router.patch(
   "/complete/custom/:taskId",
   isAuthenticated,
   taskController.completeCustomTask
 );
 
-router.post(
+router.patch(
   "/complete/system/:taskId",
   isAuthenticated,
   taskController.completeSystemTask

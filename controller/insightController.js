@@ -104,8 +104,6 @@ exports.fetchUserInsight = async (req, res) => {
             .date
         : null;
 
-    // --- Respond ---
-
     res.status(200).json({
       tasks: {
         custom: customTaskInsight,

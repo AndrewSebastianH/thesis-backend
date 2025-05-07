@@ -13,7 +13,7 @@ const UserCustomProgress = sequelize.define("UserCustomProgress", {
     references: { model: "Users", key: "id" },
   },
   customTaskId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: { model: "CustomTasks", key: "id" },
   },

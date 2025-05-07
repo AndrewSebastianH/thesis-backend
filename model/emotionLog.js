@@ -5,8 +5,8 @@ const EmotionLog = sequelize.define(
   "EmotionLog",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      defaultValue: DataTypes.INTEGER,
       primaryKey: true,
     },
     userId: {

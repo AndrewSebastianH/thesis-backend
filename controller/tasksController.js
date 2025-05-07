@@ -4,6 +4,7 @@ const {
   UserProgress,
   User,
   UserCustomProgress,
+  AssignedTasksPerRole,
 } = require("../model");
 const { Op } = require("sequelize");
 const moment = require("moment");
@@ -75,79 +76,119 @@ exports.getUserTasks = async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
+
     const today = moment().format("YYYY-MM-DD");
     const startOfWeek = moment().startOf("week").format("YYYY-MM-DD");
     const startOfMonth = moment().startOf("month").format("YYYY-MM-DD");
 
-    const customTasks = await CustomTask.findAll({
-      where: { assignedTo: userId },
-    });
-    const systemTasks = await SystemTask.findAll({
+    const allSystemTasks = await SystemTask.findAll({
       where: {
         [Op.or]: [{ targetRole: "all" }, { targetRole: userRole }],
       },
     });
 
+    const getAssignedTasks = async (interval, dateBase) => {
+      const assignedTasks = await AssignedTasksPerRole.findAll({
+        where: {
+          role: userRole,
+          recurrenceInterval: interval,
+          assignedDate: dateBase,
+        },
+      });
+
+      if (assignedTasks.length > 0) return assignedTasks;
+
+      const availableTasks = allSystemTasks.filter(
+        (t) => t.recurrenceInterval === interval
+      );
+      const shuffled = [...availableTasks].sort(() => 0.5 - Math.random());
+
+      const sliceSize = interval === "daily" ? 5 : 1;
+      const selected = shuffled.slice(0, sliceSize);
+
+      await Promise.all(
+        selected.map((task) =>
+          AssignedTasksPerRole.create({
+            role: userRole,
+            systemTaskId: task.id,
+            recurrenceInterval: interval,
+            assignedDate: dateBase,
+          })
+        )
+      );
+
+      return selected.map((task) => ({
+        systemTaskId: task.id,
+        recurrenceInterval: interval,
+        assignedDate: dateBase,
+      }));
+    };
+
+    const assignedDaily = await getAssignedTasks("daily", today);
+    const assignedWeekly = await getAssignedTasks("weekly", startOfWeek);
+    const assignedMonthly = await getAssignedTasks("monthly", startOfMonth);
+
+    const allAssignedTaskIds = [
+      ...assignedDaily,
+      ...assignedWeekly,
+      ...assignedMonthly,
+    ].map((a) => Number(a.systemTaskId));
+
+    const assignedTaskMap = new Map();
+    for (const a of [...assignedDaily, ...assignedWeekly, ...assignedMonthly]) {
+      assignedTaskMap.set(Number(a.systemTaskId), a.recurrenceInterval);
+    }
+
     const completedSystemTasks = await UserProgress.findAll({
       where: {
         userId,
-        completedAt: { [Op.gte]: startOfMonth },
+        systemTaskId: allAssignedTaskIds,
       },
-      attributes: ["systemTaskId", "completedAt"],
-    });
-
-    const completedCustomTasks = await UserCustomProgress.findAll({
-      where: { userId },
-      attributes: ["customTaskId", "completedAt"],
     });
 
     const systemTaskProgressMap = new Map();
     completedSystemTasks.forEach((p) => {
-      systemTaskProgressMap.set(p.systemTaskId, p.completedAt);
+      systemTaskProgressMap.set(Number(p.systemTaskId), p.completedAt);
     });
 
-    const customTaskProgressMap = new Map();
-    completedCustomTasks.forEach((p) => {
-      customTaskProgressMap.set(p.customTaskId, p.completedAt);
+    const isTaskCompleted = (taskId, interval) => {
+      const completedAt = systemTaskProgressMap.get(Number(taskId));
+      if (!completedAt) return false;
+
+      const date = moment(completedAt);
+      if (interval === "daily") return date.isSame(today, "day");
+      if (interval === "weekly") return date.isSameOrAfter(startOfWeek);
+      if (interval === "monthly") return date.isSameOrAfter(startOfMonth);
+      return false;
+    };
+
+    const assignedSystemTasks = await Promise.all(
+      allAssignedTaskIds.map(async (id) => {
+        const task = await SystemTask.findByPk(id);
+        const interval = assignedTaskMap.get(Number(id));
+        return {
+          type: "system",
+          ...task.toJSON(),
+          recurrenceInterval: interval,
+          completed: isTaskCompleted(id, interval),
+        };
+      })
+    );
+
+    const systemTasksToShow = assignedSystemTasks.filter((t) => !t.completed);
+
+    const customTasks = await CustomTask.findAll({
+      where: { assignedTo: userId },
     });
 
-    const daily = [],
-      weekly = [],
-      monthly = [];
+    const completedCustomTasks = await UserCustomProgress.findAll({
+      where: { userId },
+      attributes: ["customTaskId"],
+    });
 
-    for (const task of systemTasks) {
-      const lastCompletedAt = systemTaskProgressMap.get(task.id);
-      let completed = false;
-
-      if (lastCompletedAt) {
-        const date = moment(lastCompletedAt);
-        if (task.recurrenceInterval === "daily") {
-          completed = date.isSame(today, "day");
-        } else if (task.recurrenceInterval === "weekly") {
-          completed = date.isSameOrAfter(startOfWeek);
-        } else if (task.recurrenceInterval === "monthly") {
-          completed = date.isSameOrAfter(startOfMonth);
-        }
-      }
-
-      const t = {
-        type: "system",
-        ...task.toJSON(),
-        completed,
-      };
-
-      if (task.recurrenceInterval === "daily") daily.push(t);
-      else if (task.recurrenceInterval === "weekly") weekly.push(t);
-      else if (task.recurrenceInterval === "monthly") monthly.push(t);
-    }
-
-    const shuffle = (arr) => [...arr].sort(() => 0.5 - Math.random());
-
-    const systemTasksWithStatus = [
-      ...shuffle(daily.filter((t) => !t.completed)).slice(0, 5),
-      ...shuffle(weekly.filter((t) => !t.completed)).slice(0, 1),
-      ...shuffle(monthly.filter((t) => !t.completed)).slice(0, 1),
-    ];
+    const completedCustomIds = new Set(
+      completedCustomTasks.map((p) => Number(p.customTaskId))
+    );
 
     const customTasksWithStatus = customTasks.map((task) => ({
       type: "custom",
@@ -158,13 +199,13 @@ exports.getUserTasks = async (req, res) => {
       assignedBy: task.assignedBy,
       isRecurring: task.isRecurring,
       recurrenceInterval: task.recurrenceInterval,
-      completed: customTaskProgressMap.has(task.id),
+      completed: completedCustomIds.has(Number(task.id)),
     }));
 
     res.status(200).json({
       message: "Success fetching task data",
       customTasks: customTasksWithStatus,
-      systemTasks: systemTasksWithStatus,
+      systemTasks: systemTasksToShow,
     });
   } catch (error) {
     console.error(error);
@@ -248,7 +289,6 @@ exports.completeSystemTask = async (req, res) => {
         .json({ message: "System task already completed for this period." });
     }
 
-    // ✅ Task is allowed to complete
     await UserProgress.create({
       userId,
       systemTaskId: taskId,

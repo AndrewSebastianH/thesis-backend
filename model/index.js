@@ -5,6 +5,7 @@ const SystemTask = require("./systemTask");
 const EmotionLog = require("./emotionLog");
 const Mail = require("./mail");
 const UserCustomProgress = require("./userCustomProgress");
+const AssignedTasksPerRole = require("./assignedTaskPerRole");
 
 module.exports = {
   User,
@@ -14,4 +15,5 @@ module.exports = {
   SystemTask,
   EmotionLog,
   Mail,
+  AssignedTasksPerRole,
 };

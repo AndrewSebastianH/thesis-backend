@@ -3,8 +3,8 @@ const sequelize = require("../config/databaseConfig");
 
 const CustomTask = sequelize.define("CustomTask", {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
   },
   title: {
