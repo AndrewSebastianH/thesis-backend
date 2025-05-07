@@ -79,19 +79,15 @@ exports.getUserTasks = async (req, res) => {
     const startOfWeek = moment().startOf("week").format("YYYY-MM-DD");
     const startOfMonth = moment().startOf("month").format("YYYY-MM-DD");
 
-    // Fetch all custom tasks assigned to the user
     const customTasks = await CustomTask.findAll({
       where: { assignedTo: userId },
     });
-
-    // Fetch all system tasks
     const systemTasks = await SystemTask.findAll({
       where: {
         [Op.or]: [{ targetRole: "all" }, { targetRole: userRole }],
       },
     });
 
-    // Fetch completed system tasks
     const completedSystemTasks = await UserProgress.findAll({
       where: {
         userId,
@@ -106,38 +102,53 @@ exports.getUserTasks = async (req, res) => {
     });
 
     const systemTaskProgressMap = new Map();
-    completedSystemTasks.forEach((progress) => {
-      systemTaskProgressMap.set(progress.systemTaskId, progress.completedAt);
+    completedSystemTasks.forEach((p) => {
+      systemTaskProgressMap.set(p.systemTaskId, p.completedAt);
     });
 
     const customTaskProgressMap = new Map();
-    completedCustomTasks.forEach((progress) => {
-      customTaskProgressMap.set(progress.customTaskId, progress.completedAt);
+    completedCustomTasks.forEach((p) => {
+      customTaskProgressMap.set(p.customTaskId, p.completedAt);
     });
 
-    // Attach completed status for system tasks
-    const systemTasksWithStatus = systemTasks.map((task) => {
+    const daily = [],
+      weekly = [],
+      monthly = [];
+
+    for (const task of systemTasks) {
       const lastCompletedAt = systemTaskProgressMap.get(task.id);
       let completed = false;
 
       if (lastCompletedAt) {
+        const date = moment(lastCompletedAt);
         if (task.recurrenceInterval === "daily") {
-          completed = moment(lastCompletedAt).isSame(today, "day");
+          completed = date.isSame(today, "day");
         } else if (task.recurrenceInterval === "weekly") {
-          completed = moment(lastCompletedAt).isSameOrAfter(startOfWeek);
+          completed = date.isSameOrAfter(startOfWeek);
         } else if (task.recurrenceInterval === "monthly") {
-          completed = moment(lastCompletedAt).isSameOrAfter(startOfMonth);
+          completed = date.isSameOrAfter(startOfMonth);
         }
       }
 
-      return {
+      const t = {
         type: "system",
         ...task.toJSON(),
         completed,
       };
-    });
 
-    // Attach completed status for custom tasks
+      if (task.recurrenceInterval === "daily") daily.push(t);
+      else if (task.recurrenceInterval === "weekly") weekly.push(t);
+      else if (task.recurrenceInterval === "monthly") monthly.push(t);
+    }
+
+    const shuffle = (arr) => [...arr].sort(() => 0.5 - Math.random());
+
+    const systemTasksWithStatus = [
+      ...shuffle(daily.filter((t) => !t.completed)).slice(0, 5),
+      ...shuffle(weekly.filter((t) => !t.completed)).slice(0, 1),
+      ...shuffle(monthly.filter((t) => !t.completed)).slice(0, 1),
+    ];
+
     const customTasksWithStatus = customTasks.map((task) => ({
       type: "custom",
       id: task.id,
@@ -147,7 +158,7 @@ exports.getUserTasks = async (req, res) => {
       assignedBy: task.assignedBy,
       isRecurring: task.isRecurring,
       recurrenceInterval: task.recurrenceInterval,
-      completed: customTaskProgressMap.has(task.id), // mark as completed if any progress
+      completed: customTaskProgressMap.has(task.id),
     }));
 
     res.status(200).json({
