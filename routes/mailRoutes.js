@@ -20,7 +20,7 @@ router.post(
 );
 
 // Get received mails
-router.get("/received", isAuthenticated, mailController.getReceivedMails); // Example frontend: GET /received?page=1&limit=10, example fe code in discord
+router.get("/received", isAuthenticated, mailController.getReceivedMails); // Example frontend: GET /received?offset=1&limit=10, example fe code in discord
 
 // Get sent mails
 router.get("/sent", isAuthenticated, mailController.getSentMails); // Example frontend: GET /sent?page=2&limit=5

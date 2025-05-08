@@ -33,7 +33,7 @@ exports.getReceivedMails = async (req, res) => {
     const offset = parseInt(req.query.offset) || 0; // How many mails to skip (pageNum x limit = offset)
 
     const { count, rows: mails } = await Mail.findAndCountAll({
-      where: { receiverId },
+      where: { receiverId, isReceiverDeleted: false },
       order: [["createdAt", "DESC"]],
       limit,
       offset,
@@ -55,12 +55,13 @@ exports.getReceivedMails = async (req, res) => {
 // Get sent mails
 exports.getSentMails = async (req, res) => {
   try {
+    console.log("Fetching sent mails...");
     const senderId = req.user.id;
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
 
     const { count, rows: mails } = await Mail.findAndCountAll({
-      where: { senderId },
+      where: { senderId, isSenderDeleted: false },
       order: [["createdAt", "DESC"]],
       limit,
       offset,
