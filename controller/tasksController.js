@@ -8,6 +8,7 @@ const {
 } = require("../model");
 const { Op } = require("sequelize");
 const moment = require("moment");
+const { decryptContent, encryptContent } = require("../services/encrypter");
 
 // Create System Task
 exports.createSystemTask = async (req, res) => {
@@ -54,9 +55,14 @@ exports.createCustomTask = async (req, res) => {
       });
     }
 
+    const encryptedTitle = encryptContent(title);
+    const encryptedDescription = description
+      ? encryptContent(description)
+      : null;
+
     const task = await CustomTask.create({
-      title,
-      description: description || null,
+      title: encryptedTitle,
+      description: encryptedDescription || null,
       assignedBy: user.id,
       assignedTo: assignToSelf ? user.id : user.relatedUserId,
       dueDate: dueDate || null,
@@ -193,8 +199,8 @@ exports.getUserTasks = async (req, res) => {
     const customTasksWithStatus = customTasks.map((task) => ({
       type: "custom",
       id: task.id,
-      title: task.title,
-      description: task.description,
+      title: decryptContent(task.title),
+      description: task.description ? decryptContent(task.description) : null,
       dueDate: task.dueDate,
       assignedBy: task.assignedBy,
       isRecurring: task.isRecurring,
