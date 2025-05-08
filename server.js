@@ -1,11 +1,14 @@
 const express = require("express");
 const session = require("express-session");
 const routes = require("./routes");
+const cors = require("cors");
 const db = require("./config/databaseConfig");
 const { SECRET_KEY } = require("./constants/constants");
 
 const app = express();
 const port = 3077;
+
+app.use(cors());
 
 // Database connection and sync
 const startServer = async () => {
