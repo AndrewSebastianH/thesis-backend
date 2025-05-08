@@ -47,7 +47,7 @@ exports.createCustomTask = async (req, res) => {
     } = req.body;
 
     // Validate mutual exclusivity between dueDate and isRecurring
-    if (dueDate && isRecurring) {
+    if (dueDate != null && isRecurring == true) {
       return res.status(400).json({
         message:
           "Task cannot be both recurring and have a due date. Choose one.",
