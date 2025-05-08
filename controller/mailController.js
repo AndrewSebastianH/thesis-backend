@@ -1,4 +1,4 @@
-const { Mail } = require("../model");
+const { Mail, User } = require("../model");
 const { Op } = require("sequelize");
 const { encryptContent, decryptContent } = require("../services/encrypter");
 
@@ -6,15 +6,19 @@ const { encryptContent, decryptContent } = require("../services/encrypter");
 exports.sendMail = async (req, res) => {
   try {
     const senderId = req.user.id;
-    const receiverId = req.user.relatedUserId;
+    // const receiverId = req.user.relatedUserId;
     const { subject, message } = req.body;
 
     const hashedMessage = encryptContent(message);
+    const hashedSubject = encryptContent(subject || "No Subject");
+
+    const sender = await User.findByPk(senderId);
+    const receiverId = sender.relatedUserId;
 
     const mail = await Mail.create({
       senderId,
       receiverId,
-      subject: subject || "No Subject",
+      subject: hashedSubject,
       message: hashedMessage,
     });
 
@@ -41,6 +45,7 @@ exports.getReceivedMails = async (req, res) => {
 
     const decryptedMails = mails.map((mail) => {
       const plainMail = mail.get({ plain: true }); // Convert to plain object
+      plainMail.subject = decryptContent(plainMail.subject); // Decrypt subject
       plainMail.message = decryptContent(plainMail.message); // Decrypt message
       return plainMail;
     });
@@ -55,7 +60,7 @@ exports.getReceivedMails = async (req, res) => {
 // Get sent mails
 exports.getSentMails = async (req, res) => {
   try {
-    console.log("Fetching sent mails...");
+    // console.log("Fetching sent mails...");
     const senderId = req.user.id;
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
@@ -69,6 +74,7 @@ exports.getSentMails = async (req, res) => {
 
     const decryptedMails = mails.map((mail) => {
       const plainMail = mail.get({ plain: true }); // Convert to plain object
+      plainMail.subject = decryptContent(plainMail.subject); // Decrypt subject
       plainMail.message = decryptContent(plainMail.message); // Decrypt message
       return plainMail;
     });
@@ -139,7 +145,10 @@ exports.deleteMail = async (req, res) => {
 exports.deleteAllMails = async (req, res) => {
   try {
     const receiverId = req.user.id;
-    const connectedUserId = req.user.relatedUserId;
+    // const connectedUserId = req.user.relatedUserId;
+
+    const user = await User.findByPk(receiverId);
+    const connectedUserId = user?.relatedUserId;
 
     if (!connectedUserId) {
       return res.status(400).json({ message: "No connected user found." });

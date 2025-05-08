@@ -6,7 +6,6 @@ const generateToken = (user) => {
   const payload = {
     id: user.id,
     role: user?.role,
-    relatedUserId: user?.relatedUserId,
   };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
   return token;

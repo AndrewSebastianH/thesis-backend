@@ -26,7 +26,7 @@ exports.createEmotionLog = async (req, res) => {
 exports.getEmotionLogs = async (req, res) => {
   try {
     const userId = req.user.id;
-    const relatedUserId = req.user.relatedUserId;
+    // const relatedUserId = req.user.relatedUserId;
 
     const { startDate, endDate } = req.query;
 
@@ -40,6 +40,8 @@ exports.getEmotionLogs = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+
+    const relatedUserId = user?.relatedUserId;
 
     const userLogs = await EmotionLog.findAll({
       where: {

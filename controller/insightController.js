@@ -4,6 +4,7 @@ const {
   UserCustomProgress,
   UserProgress,
   EmotionLog,
+  User,
 } = require("../model");
 
 const { Op } = require("sequelize");
@@ -29,7 +30,8 @@ exports.fetchUserInsight = async (req, res) => {
     if (type === "self") {
       userId = req.user.id;
     } else if (type === "related") {
-      userId = req.user.relatedUserId;
+      const user = await User.findByPk(req.user.id);
+      userId = user?.relatedUserId;
       if (!userId) {
         return res.status(400).json({ message: "No related user connected." });
       }
