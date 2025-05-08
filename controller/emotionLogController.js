@@ -29,9 +29,6 @@ exports.getEmotionLogs = async (req, res) => {
     const relatedUserId = req.user.relatedUserId;
 
     const { startDate, endDate } = req.query;
-    // Example for FE: load logs for August 2025
-    // final startDate = DateTime(2025, 8, 1);
-    // final endDate = DateTime(2025, 8, 31);
 
     if (!startDate || !endDate) {
       return res
@@ -39,29 +36,36 @@ exports.getEmotionLogs = async (req, res) => {
         .json({ message: "Start date and end date are required." });
     }
 
-    const [user, relative] = await Promise.all([
-      User.findByPk(userId),
-      User.findByPk(relatedUserId),
-    ]);
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
 
-    const [userLogs, relativeLogs] = await Promise.all([
-      EmotionLog.findAll({
-        where: {
-          userId,
-          date: {
-            [Op.between]: [startDate, endDate],
-          },
+    const userLogs = await EmotionLog.findAll({
+      where: {
+        userId,
+        date: {
+          [Op.between]: [startDate, endDate],
         },
-      }),
-      EmotionLog.findAll({
-        where: {
-          userId: relatedUserId,
-          date: {
-            [Op.between]: [startDate, endDate],
+      },
+    });
+
+    let relativeLogs = [];
+    let relative = null;
+
+    if (relatedUserId) {
+      relative = await User.findByPk(relatedUserId);
+      if (relative) {
+        relativeLogs = await EmotionLog.findAll({
+          where: {
+            userId: relatedUserId,
+            date: {
+              [Op.between]: [startDate, endDate],
+            },
           },
-        },
-      }),
-    ]);
+        });
+      }
+    }
 
     res.status(200).json({
       user: {
@@ -69,11 +73,13 @@ exports.getEmotionLogs = async (req, res) => {
         username: user.username,
         logs: userLogs,
       },
-      relative: {
-        id: relative.id,
-        username: relative.username,
-        logs: relativeLogs,
-      },
+      relative: relative
+        ? {
+            id: relative.id,
+            username: relative.username,
+            logs: relativeLogs,
+          }
+        : null,
     });
   } catch (error) {
     console.error(error);
