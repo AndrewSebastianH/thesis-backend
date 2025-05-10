@@ -7,6 +7,10 @@ const Mail = require("./mail");
 const UserCustomProgress = require("./userCustomProgress");
 const AssignedTasksPerRole = require("./assignedTaskPerRole");
 
+// Run all associations
+const { taskAssociations } = require("./associations");
+taskAssociations();
+
 module.exports = {
   User,
   CustomTask,
