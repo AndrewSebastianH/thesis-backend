@@ -1,13 +1,11 @@
-const {
-  User,
-  SystemTask,
-  CustomTask,
-  AssignedTasksPerRole,
-  EmotionLog,
-  Mail,
-  UserProgress,
-  UserCustomProgress,
-} = require("./index");
+const User = require("./user");
+const CustomTask = require("./customTask");
+const SystemTask = require("./systemTask");
+const UserProgress = require("./userProgress");
+const UserCustomProgress = require("./userCustomProgress");
+const AssignedTasksPerRole = require("./assignedTaskPerRole");
+const EmotionLog = require("./emotionLog");
+const Mail = require("./mail");
 
 exports.taskAssociations = () => {
   // --- CustomTask ---
