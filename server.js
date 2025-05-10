@@ -16,6 +16,7 @@ const startServer = async () => {
     await db.authenticate();
     console.log("Database Connected! :)");
 
+    require("./model");
     // Sync all models and create tables if they do not exist
     await db.sync({ alter: true });
     console.log("Synced all models with the database.");
