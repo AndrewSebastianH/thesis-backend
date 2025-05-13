@@ -4,17 +4,12 @@ const routes = require("./routes");
 const cors = require("cors");
 const db = require("./config/databaseConfig");
 const { SECRET_KEY } = require("./constants/constants");
+const { sessionMiddleware, sessionStore } = require("./config/sessionConfig");
 const app = express();
 const port = 3077;
 
 app.use(cors());
-app.use(
-  session({
-    secret: SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+app.use(sessionMiddleware);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use("/", routes);
@@ -33,7 +28,7 @@ const {
 
 // Base Route
 app.get("/", (req, res) => {
-  res.send("API is runninggggg! :)");
+  res.send("API is running! :)");
 });
 
 // Sync in FK-safe order
@@ -42,20 +37,25 @@ const startServer = async () => {
     await db.authenticate();
     console.log("Database Connected! :)");
 
-    await User.sync({ alter: true });
-    await SystemTask.sync({ alter: true });
-    await CustomTask.sync({ alter: true });
-    await UserProgress.sync({ alter: true });
-    await UserCustomProgress.sync({ alter: true });
-    await EmotionLog.sync({ alter: true });
-    await Mail.sync({ alter: true });
-    await AssignedTasksPerRole.sync({ alter: true });
+    await User.sync();
+    await SystemTask.sync();
+    await CustomTask.sync();
+    await UserProgress.sync();
+    await UserCustomProgress.sync();
+    await EmotionLog.sync();
+    await Mail.sync();
+    await AssignedTasksPerRole.sync();
 
     console.log("All models synced!");
 
+    await sessionStore.sync();
+
     // 🔥 Start server only after sync
     app.listen(port, () => {
-      console.log("Server is running on port:", port);
+      console.log(
+        "Holy Shit! it fucking works!\nServer is running on port:",
+        port
+      );
     });
   } catch (error) {
     console.error("Error connecting to the database:", error);
