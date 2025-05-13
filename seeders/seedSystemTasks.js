@@ -4,90 +4,95 @@ const db = require("../config/databaseConfig");
 
 const taskList = [
   {
-    title: "Say Good Morning!",
+    title: "Ucapkan Selamat Pagi!",
     description:
-      "Start the day with a simple greeting to your parent or child.",
+      "Mulailah hari dengan sapaan sederhana kepada orang tua atau anakmu.",
     recurrenceInterval: "daily",
     targetRole: "all",
   },
   {
-    title: "Compliment Them",
-    description: "Give a genuine compliment to your parent or child today.",
-    recurrenceInterval: "daily",
-    targetRole: "all",
-  },
-  {
-    title: "Ask About Their Day",
-    description: "Show interest in what your relative did today.",
-    recurrenceInterval: "daily",
-    targetRole: "all",
-  },
-  {
-    title: "Drink Water Together",
+    title: "Beri Pujian",
     description:
-      "Remind each other to stay hydrated by drinking water at the same time.",
+      "Beri pujian yang tulus kepada orang tua atau anakmu hari ini.",
     recurrenceInterval: "daily",
     targetRole: "all",
   },
   {
-    title: "Watch Something Together",
-    description: "Pick a short video or film and enjoy it together.",
+    title: "Tanya Tentang Harinya",
+    description:
+      "Tunjukkan ketertarikan pada apa yang dilakukan oleh anggota keluargamu hari ini.",
+    recurrenceInterval: "daily",
+    targetRole: "all",
+  },
+  {
+    title: "Minum Air Bersama",
+    description:
+      "Ingatkan satu sama lain untuk tetap terhidrasi dengan minum air bersama.",
+    recurrenceInterval: "daily",
+    targetRole: "all",
+  },
+  {
+    title: "Tonton Sesuatu Bersama",
+    description: "Pilih video atau film pendek dan nikmati bersama.",
     recurrenceInterval: "weekly",
     targetRole: "all",
   },
   {
-    title: "Do a Small Chore Together",
+    title: "Kerjakan Tugas Rumah Kecil Bersama",
     description:
-      "Team up to do a small task like folding laundry or tidying a space.",
+      "Bekerja sama untuk melakukan tugas kecil seperti melipat baju atau merapikan ruangan.",
     recurrenceInterval: "weekly",
     targetRole: "all",
   },
   {
-    title: "Share a Memory",
-    description: "Recall a fun or meaningful moment you've shared.",
-    recurrenceInterval: "monthly",
-    targetRole: "all",
-  },
-  {
-    title: "Create a Goal for This Month",
-    description: "Set a small goal and encourage each other.",
-    recurrenceInterval: "monthly",
-    targetRole: "all",
-  },
-  {
-    title: "Tell a Joke",
-    description: "Lighten the mood with something funny.",
-    recurrenceInterval: "daily",
-    targetRole: "child",
-  },
-  {
-    title: "Offer a Helping Hand",
+    title: "Bagikan Kenangan",
     description:
-      "Help your parent with a small task like washing dishes, folding clothes, etc.",
+      "Ingat kembali momen menyenangkan atau bermakna yang pernah kalian alami bersama.",
+    recurrenceInterval: "monthly",
+    targetRole: "all",
+  },
+  {
+    title: "Buat Tujuan Bulan Ini",
+    description:
+      "Tentukan tujuan kecil dan saling mendukung untuk mencapainya.",
+    recurrenceInterval: "monthly",
+    targetRole: "all",
+  },
+  {
+    title: "Ceritakan Lelucon",
+    description: "Ceriakan suasana dengan sesuatu yang lucu.",
     recurrenceInterval: "daily",
     targetRole: "child",
   },
   {
-    title: "Teach Something New",
-    description: "Teach your child something practical or fun.",
+    title: "Tawarkan Bantuan",
+    description:
+      "Bantu orang tuamu dengan tugas kecil seperti mencuci piring atau melipat baju.",
+    recurrenceInterval: "daily",
+    targetRole: "child",
+  },
+  {
+    title: "Ajarkan Hal Baru",
+    description: "Ajarkan anakmu sesuatu yang berguna atau menyenangkan.",
     recurrenceInterval: "weekly",
     targetRole: "parent",
   },
   {
-    title: "Say Thank You",
-    description: "Appreciate something they've done, no matter how small.",
+    title: "Ucapkan Terima Kasih",
+    description:
+      "Hargai hal-hal yang telah mereka lakukan, sekecil apapun itu.",
     recurrenceInterval: "monthly",
     targetRole: "all",
   },
   {
-    title: "Give a Hug",
-    description: "Physical affection helps build bonds.",
+    title: "Berikan Pelukan",
+    description: "Sentuhan fisik membantu memperkuat ikatan emosional.",
     recurrenceInterval: "weekly",
     targetRole: "all",
   },
   {
-    title: "Ask for Help",
-    description: "Let your relative assist you with something minor.",
+    title: "Minta Bantuan",
+    description: "Izinkan anggota keluargamu membantumu dalam hal kecil.",
     recurrenceInterval: "weekly",
     targetRole: "all",
   },
@@ -105,10 +110,10 @@ async function seedTasks() {
       });
     }
 
-    console.log("✅ Seeding complete.");
+    console.log("✅ Seeding selesai.");
     process.exit(0);
   } catch (err) {
-    console.error("❌ Seeding failed:", err);
+    console.error("❌ Gagal menanam data:", err);
     process.exit(1);
   }
 }
