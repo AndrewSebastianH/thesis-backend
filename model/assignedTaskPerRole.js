@@ -7,7 +7,7 @@ const AssignedTasksPerRole = sequelize.define("AssignedTasksPerRole", {
     allowNull: false,
   },
   systemTaskId: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   recurrenceInterval: {
