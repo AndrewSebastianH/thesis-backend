@@ -4,24 +4,56 @@ const routes = require("./routes");
 const cors = require("cors");
 const db = require("./config/databaseConfig");
 const { SECRET_KEY } = require("./constants/constants");
-
 const app = express();
 const port = 3077;
 
 app.use(cors());
+app.use(
+  session({
+    secret: SECRET_KEY,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use("/", routes);
 
-// Database connection and sync
+// Load models and associations
+const {
+  User,
+  CustomTask,
+  SystemTask,
+  UserProgress,
+  UserCustomProgress,
+  EmotionLog,
+  Mail,
+  AssignedTasksPerRole,
+} = require("./model");
+
+// Base Route
+app.get("/", (req, res) => {
+  res.send("API is runninggggg! :)");
+});
+
+// Sync in FK-safe order
 const startServer = async () => {
   try {
     await db.authenticate();
     console.log("Database Connected! :)");
 
-    require("./model");
-    // Sync all models and create tables if they do not exist
-    await db.sync({ alter: true });
-    console.log("Synced all models with the database.");
+    await User.sync({ alter: true });
+    await SystemTask.sync({ alter: true });
+    await CustomTask.sync({ alter: true });
+    await UserProgress.sync({ alter: true });
+    await UserCustomProgress.sync({ alter: true });
+    await EmotionLog.sync({ alter: true });
+    await Mail.sync({ alter: true });
+    await AssignedTasksPerRole.sync({ alter: true });
 
-    // Start the server
+    console.log("All models synced!");
+
+    // 🔥 Start server only after sync
     app.listen(port, () => {
       console.log("Server is running on port:", port);
     });
@@ -30,25 +62,4 @@ const startServer = async () => {
   }
 };
 
-app.use(
-  session({
-    secret: SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-
-// Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Routes
-app.use("/", routes);
-
-// Base Route
-app.get("/", (req, res) => {
-  res.send("API is runninggggg! :)");
-});
-
-// Start the server after database sync
 startServer();
