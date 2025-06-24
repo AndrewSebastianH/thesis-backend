@@ -269,9 +269,9 @@ exports.completeCustomTask = async (req, res) => {
           await sendNotification(
             sender.fcmToken,
             "Task Completed!",
-            `${req.user.username} completed your task: "${decryptContent(
+            `Your relaative have completed your task: "${decryptContent(
               task.title
-            )}"`
+            )}!"`
           );
         } catch (notifErr) {
           console.error("Failed to send notification:", notifErr);
