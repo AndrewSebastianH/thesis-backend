@@ -9,7 +9,7 @@ const {
 const { Op } = require("sequelize");
 const moment = require("moment");
 const { decryptContent, encryptContent } = require("../services/encrypter");
-const { sendNotification } = require("../services/sendNotification");
+const sendNotification = require("../services/sendNotification");
 
 // Create System Task
 exports.createSystemTask = async (req, res) => {
@@ -75,11 +75,16 @@ exports.createCustomTask = async (req, res) => {
       const receiver = await User.findByPk(user.relatedUserId);
 
       if (receiver && receiver.fcmToken) {
-        await sendNotification(
-          receiver.fcmToken,
-          "New Task Assigned!",
-          `${user.username} assigned you a new task: "${title}"`
-        );
+        try {
+          await sendNotification(
+            receiver.fcmToken,
+            "New Task Assigned!",
+            `${user.username} assigned you a new task: "${title}"`
+          );
+        } catch (notifErr) {
+          console.error("Failed to send notification:", notifErr);
+          // But do NOT throw — just log and continue
+        }
       }
     }
 
@@ -260,13 +265,17 @@ exports.completeCustomTask = async (req, res) => {
       const sender = await User.findByPk(task.assignedBy);
 
       if (sender && sender.fcmToken) {
-        await sendNotification(
-          sender.fcmToken,
-          "Task Completed!",
-          `${req.user.username} completed your task: "${decryptContent(
-            task.title
-          )}"`
-        );
+        try {
+          await sendNotification(
+            sender.fcmToken,
+            "Task Completed!",
+            `${req.user.username} completed your task: "${decryptContent(
+              task.title
+            )}"`
+          );
+        } catch (notifErr) {
+          console.error("Failed to send notification:", notifErr);
+        }
       }
     }
 
