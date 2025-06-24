@@ -84,6 +84,18 @@ router.get(
   authController.getConnectionCode
 );
 
+router.post(
+  "/user/fcm-token",
+  isAuthenticated,
+  [
+    body("fcmToken")
+      .trim()
+      .notEmpty()
+      .withMessage("FCM token field is required"),
+  ],
+  authController.storeUserFCMToken
+);
+
 router.patch("/user/profile", isAuthenticated, authController.updateProfile);
 
 module.exports = router;

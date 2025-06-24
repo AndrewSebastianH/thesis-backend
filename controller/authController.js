@@ -264,3 +264,27 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: "Error updating profile." });
   }
 };
+
+exports.storeUserFCMToken = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({ message: "FCM token is required." });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.fcmToken = fcmToken;
+    await user.save();
+
+    res.status(200).json({ message: "FCM token stored successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error storing FCM token." });
+  }
+};
