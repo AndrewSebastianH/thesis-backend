@@ -269,7 +269,7 @@ exports.completeCustomTask = async (req, res) => {
           await sendNotification(
             sender.fcmToken,
             "Task Completed!",
-            `Your relaative have completed your task: "${decryptContent(
+            `Your relative have completed your task: "${decryptContent(
               task.title
             )}!"`
           );
