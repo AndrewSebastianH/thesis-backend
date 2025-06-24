@@ -9,6 +9,7 @@ const {
 const { Op } = require("sequelize");
 const moment = require("moment");
 const { decryptContent, encryptContent } = require("../services/encrypter");
+const { sendNotification } = require("../services/sendNotification");
 
 // Create System Task
 exports.createSystemTask = async (req, res) => {
@@ -69,6 +70,18 @@ exports.createCustomTask = async (req, res) => {
       isRecurring: isRecurring || false,
       recurrenceInterval: isRecurring ? recurrenceInterval || "daily" : null,
     });
+
+    if (!assignToSelf) {
+      const receiver = await User.findByPk(user.relatedUserId);
+
+      if (receiver && receiver.fcmToken) {
+        await sendNotification(
+          receiver.fcmToken,
+          "New Task Assigned!",
+          `${user.username} assigned you a new task: "${title}"`
+        );
+      }
+    }
 
     res.status(201).json({ message: "Custom task successfully created", task });
   } catch (error) {
@@ -242,6 +255,20 @@ exports.completeCustomTask = async (req, res) => {
       customTaskId: taskId,
       completedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
     });
+
+    if (task.assignedBy !== userId) {
+      const sender = await User.findByPk(task.assignedBy);
+
+      if (sender && sender.fcmToken) {
+        await sendNotification(
+          sender.fcmToken,
+          "Task Completed!",
+          `${req.user.username} completed your task: "${decryptContent(
+            task.title
+          )}"`
+        );
+      }
+    }
 
     res.status(201).json({ message: "Custom task successfully completed" });
   } catch (error) {
