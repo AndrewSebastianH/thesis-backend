@@ -1,12 +1,13 @@
 const { Mail, User } = require("../model");
 const { Op } = require("sequelize");
 const { encryptContent, decryptContent } = require("../services/encrypter");
+const sendNotification = require("../services/sendNotification");
 
+// Create mail
 // Create mail
 exports.sendMail = async (req, res) => {
   try {
     const senderId = req.user.id;
-    // const receiverId = req.user.relatedUserId;
     const { subject, message } = req.body;
 
     const hashedMessage = encryptContent(message);
@@ -21,6 +22,22 @@ exports.sendMail = async (req, res) => {
       subject: hashedSubject,
       message: hashedMessage,
     });
+
+    // Try sending notification
+    try {
+      const receiver = await User.findByPk(receiverId);
+
+      if (receiver && receiver.fcmToken) {
+        await sendNotification(
+          receiver.fcmToken,
+          "You have a new mail!",
+          `${sender.username} sent you a mail: "${subject || "No Subject"}"`
+        );
+      }
+    } catch (notifError) {
+      console.error("Error sending mail notification:", notifError);
+      // continue without throwing
+    }
 
     res.status(201).json({ message: "Mail successfully created", mail });
   } catch (error) {
