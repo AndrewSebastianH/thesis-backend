@@ -172,7 +172,11 @@ exports.getUserTasks = async (req, res) => {
 
     const systemTaskProgressMap = new Map();
     completedSystemTasks.forEach((p) => {
-      systemTaskProgressMap.set(Number(p.systemTaskId), p.completedAt);
+      const taskId = Number(p.systemTaskId);
+      const existing = systemTaskProgressMap.get(taskId);
+      if (!existing || moment(p.completedAt).isAfter(existing)) {
+        systemTaskProgressMap.set(taskId, p.completedAt);
+      }
     });
 
     const isTaskCompleted = (taskId, interval) => {
